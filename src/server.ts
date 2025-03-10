@@ -5,7 +5,7 @@ const port = 3000;
 const app = express();
 const prisma = new PrismaClient();
 
-app.use(express.json())
+app.use(express.json());
 
 app.get("/movies", async (_, res) => {
   const movies = await prisma.movie.findMany({
@@ -21,25 +21,35 @@ app.get("/movies", async (_, res) => {
 });
 
 app.post("/movies", async (req, res) => {
+  const { title, genre_id, language_id, oscar_count, release_date } = req.body;
 
-const {title, genre_id, language_id, oscar_count, release_date} = req.body;  
+  try {
+    //verificar no banco se já existe um filme com o nome que está sendo enviado
 
-try{
-  await prisma.movie.create({
-    data: {
-      title,
-      genre_id,
-      language_id,
-      oscar_count,
-      release_date: new Date(release_date)
+    const movieWithSameTitle = await prisma.movie.findFirst({
+      where: { title: { equals: title, mode: "insensitive" } },
+    });
+
+    if (movieWithSameTitle) {
+      return res
+        .status(409)
+        .send({ message: "Já existe um filme cadastrado com essa título" });
     }
-  });
-}catch(error){
-  return res.status(500).send({message: "Falha ao cadastrar um filme"})
-}
+
+    await prisma.movie.create({
+      data: {
+        title,
+        genre_id,
+        language_id,
+        oscar_count,
+        release_date: new Date(release_date),
+      },
+    });
+  } catch (error) {
+    return res.status(500).send({ message: "Falha ao cadastrar um filme" });
+  }
 
   res.status(201).send();
-
 });
 
 app.listen(port, () => {
