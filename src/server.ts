@@ -1,11 +1,14 @@
 import express from "express";
 import { PrismaClient } from "@prisma/client";
+import swaggeUi from "swagger-ui-express";
+import swaggerDocument from "../swagger.json";
 
 const port = 3000;
 const app = express();
 const prisma = new PrismaClient();
 
 app.use(express.json());
+app.use("/docs", swaggeUi.serve, swaggeUi.setup(swaggerDocument))
 
 app.get("/movies", async (_, res) => {
   const movies = await prisma.movie.findMany({
@@ -109,28 +112,27 @@ app.delete("/movies/:id", async (req, res) => {
 
 app.get("/movies/:genreName", async (req, res) => {
   //receber o nome do gênero pelo parâmetro da rota
-  try{
-  //filtrar os filmes do banco pelo gênero
-  const moviesFilteredByGenreName = await prisma.movie.findMany({
-    include: {
-      genres: true,
-      languages: true,
-    },
-    where: {
-      genres: {
-        name: {
-          equals: req.params.genreName,
-          mode: "insensitive",
+  try {
+    //filtrar os filmes do banco pelo gênero
+    const moviesFilteredByGenreName = await prisma.movie.findMany({
+      include: {
+        genres: true,
+        languages: true,
+      },
+      where: {
+        genres: {
+          name: {
+            equals: req.params.genreName,
+            mode: "insensitive",
+          },
         },
       },
-    },
-  });
+    });
     //retornar os filmes filtrados na resposta da rota
     res.status(200).send(moviesFilteredByGenreName);
-}catch(error){
-  res.status(500).send({ message: "Falaha ao filtrar filmes por gênero"})
-}
-
+  } catch (error) {
+    res.status(500).send({ message: "Falaha ao filtrar filmes por gênero" });
+  }
 });
 
 app.listen(port, () => {
